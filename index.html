@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>color namer</title>
+  <style>
+    :root{
+      --bg:#0b0b15;
+      --panel:#121225;
+      --ink:#eaf0ff;
+      --muted:#a9b0c8;
+      --pink:#ff71ce;
+      --cyan:#01cdfe;
+      --purple:#b967ff;
+      --sun:#ffd166;
+      --danger:#ff6a6a;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%; margin:0}
+    body{
+      font:14.5px/1.6 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      color:var(--ink);
+      display:grid; place-items:center; padding:20px;
+      background:linear-gradient(180deg, #0b0b15 0%, #0f1122 60%, #0b0b15 100%);
+      overflow:hidden;
+    }
+
+    /* scrolling grid floor */
+    body::before{
+      content:""; position:absolute; bottom:0; left:0; right:0; height:60%; z-index:-2;
+      background:
+        repeating-linear-gradient(0deg, rgba(1,205,254,.3) 0 2px, transparent 2px 40px),
+        repeating-linear-gradient(90deg, rgba(255,113,206,.3) 0 2px, transparent 2px 40px);
+      background-size: 100% 40px, 40px 100%;
+      transform: perspective(500px) rotateX(60deg);
+      animation: gridmove 3s linear infinite;
+    }
+    @keyframes gridmove{ from{background-position-y:0} to{background-position-y:40px} }
+
+    /* VHS noise overlay */
+    body::after{
+      content:""; position:absolute; inset:0; z-index:-1;
+      background: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnPjxmaWx0ZXIgaWQ9J25vaXNlJz48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9JzAuNScgbnVtT2N0YXZlcz0nMScvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbHRlcj0ndXJsKCNub2lzZSknIGZpbGw9JyNmZmYnLz48L3N2Zz4=");
+      opacity:0.15;
+      mix-blend-mode:overlay;
+      animation: noiseMove 1s steps(2) infinite;
+      pointer-events:none;
+    }
+    @keyframes noiseMove{ from{background-position:0 0} to{background-position:100% 100%} }
+
+    .card{
+      width:min(980px,96vw);
+      border-radius:20px; overflow:hidden; position:relative;
+      background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.00));
+      border:1px solid rgba(255,255,255,0.08);
+      box-shadow:0 0 0 2px rgba(255,113,206,0.15), 0 30px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+      z-index:1;
+    }
+    .header{ padding:18px 22px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+      background:linear-gradient(90deg, rgba(255,113,206,0.18), rgba(1,205,254,0.18));
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      text-shadow:0 0 6px rgba(255,113,206,0.6);
+    }
+    .title{font-size:18px; font-weight:900; letter-spacing:.3px}
+    .muted{color:var(--muted)}
+
+    .content{display:grid; grid-template-columns:360px 1fr}
+    @media (max-width:760px){ .content{grid-template-columns:1fr} }
+
+    .controls{padding:22px; background:var(--panel); border-right:1px dashed rgba(255,255,255,0.15); position:relative;}
+    .controls::before{
+      content:""; position:absolute; inset:0; opacity:.2; pointer-events:none;
+      background:
+        linear-gradient(transparent 0 20px, rgba(255,113,206,.3) 21px, transparent 22px),
+        linear-gradient(90deg, transparent 0 20px, rgba(1,205,254,.3) 21px, transparent 22px);
+      background-size: 100% 22px, 22px 100%;
+    }
+
+    .row{display:flex; align-items:center; gap:10px; margin-bottom:14px}
+    .row label{width:92px; color:var(--muted); font-weight:700}
+    .row input[type="text"]{ flex:1; background:#0c0f1a; border:1px solid rgba(255,255,255,0.15); color:var(--ink);
+      padding:10px 12px; border-radius:10px; outline:none; }
+    .row input[type="text"]:focus{ border-color:var(--pink); box-shadow:0 0 0 3px rgba(255,113,206,0.15) }
+    .row input[type="color"]{ width:46px; height:34px; border:none; background:transparent; cursor:pointer }
+
+    .swatch{ position:relative; height:150px; border-radius:14px; overflow:hidden; border:1px solid rgba(255,255,255,0.12);
+      display:flex; align-items:flex-end; justify-content:space-between; padding:12px;
+      background:conic-gradient(from 0deg, #ff0040, #ff8a00, #ffe100, #2bff00, #00ffe1, #0077ff, #b700ff, #ff0040);
+      isolation:isolate;
+    }
+    .swatch .hex{ font-family: ui-monospace, monospace; font-weight:800; font-size:14px; padding:6px 10px; border-radius:8px; background:rgba(0,0,0,0.35) }
+    .swatch .meta{ font-size:12px; color:#fdfdff; opacity:.95; display:flex; gap:8px; align-items:center }
+    .dot{ width:10px; height:10px; border-radius:50%; background:currentColor; box-shadow:0 0 0 2px rgba(0,0,0,0.25) inset }
+
+    .result{ padding:24px 22px; display:grid; gap:14px; position:relative }
+    .name{ font-size:30px; font-weight:900; letter-spacing:.4px; line-height:1.25; color:var(--pink); text-shadow:0 0 10px rgba(255,113,206,.5) }
+    .explain{ font-size:13.5px; color:var(--muted) }
+    .hsl-display{ position:absolute; top:8px; right:12px; font-size:12px; color:var(--cyan); background:rgba(0,0,0,0.35); padding:4px 8px; border-radius:6px; font-family:ui-monospace, monospace; }
+
+    .btns{ display:flex; gap:10px; flex-wrap:wrap }
+    .btn{ border:1px solid rgba(255,255,255,0.18); background:linear-gradient(90deg, rgba(255,113,206,0.15), rgba(1,205,254,0.15)); color:var(--ink);
+      padding:9px 12px; border-radius:10px; cursor:pointer; font-weight:800; text-transform:lowercase }
+    .btn:hover{ border-color: var(--cyan); box-shadow:0 0 0 3px rgba(1,205,254,0.18) }
+
+    .footer{ padding:14px 22px; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between; gap:10px; color:var(--muted); font-size:12.5px }
+    .kbd{ border:1px solid rgba(255,255,255,0.18); padding:2px 6px; border-radius:6px; background:#0f1421; color:#cbd5e1; font-weight:700 }
+
+    details.tests{ border-top:1px dashed rgba(255,255,255,0.15); padding:14px 22px; background:rgba(255,255,255,0.02) }
+    details.tests summary{ cursor:pointer; color:var(--muted) }
+    #testlog{ white-space:pre-wrap; font-family: ui-monospace, monospace; font-size:12px; line-height:1.35; margin-top:8px }
+    .error{ color:var(--danger) }
+  </style>
+</head>
+<body>
+  <section class="card" role="application" aria-label="color namer">
+    <div class="header">
+      <div class="title">color namer</div>
+      <div class="muted">type a hex or use the color picker</div>
+    </div>
+
+    <div class="content">
+      <div class="controls">
+        <div class="row">
+          <label for="hex">hex</label>
+          <input id="hex" type="text" placeholder="#ff71ce" autocomplete="off" spellcheck="false" aria-label="hex input" />
+          <input id="picker" type="color" aria-label="color picker" />
+        </div>
+        <div class="swatch" id="swatch" aria-live="polite" aria-atomic="true">
+          <div class="hex" id="hexTag">#ff71ce</div>
+          <div class="meta"><span class="dot" id="contrDot"></span><span id="contrText">contrast: good</span></div>
+        </div>
+        <div class="btns" style="margin-top:14px">
+          <button class="btn" id="randomBtn">random</button>
+          <button class="btn" id="copyBtn">copy name</button>
+          <button class="btn" id="copyHexBtn">copy hex</button>
+        </div>
+      </div>
+
+      <div class="result">
+        <div class="name" id="name">electric mint glacier</div>
+        <div class="explain" id="explain">names are generated from hue + saturation + lightness, with a deterministic seed so the same hex always gets the same nickname.</div>
+        <div class="hsl-display" id="hslpill">hsl(330°, 70%, 70%)</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>tip: paste any hex with <span class="kbd">ctrl/⌘</span>+<span class="kbd">v</span></div>
+      <div class="muted">devs: <code>window.generateColorName(hex)</code> works in console</div>
+    </div>
+
+    <details class="tests">
+      <summary>built‑in tests</summary>
+      <pre id="testlog"></pre>
+    </details>
+  </section>
+
+<script>
+// ===== utilities =====
+const pad2 = n => n.toString(16).padStart(2,'0');
+
+function normalizeHex(input){
+  if(input === undefined || input === null) return null;
+  let s = (''+input).trim().toLowerCase();
+  // keep only hex digits; allow optional leading # and junk
+  s = s.replace(/[^0-9a-f]/g,'');
+  if(s.length===3) s = s.split('').map(ch=>ch+ch).join('');
+  if(s.length===6) return '#'+s;
+  return null;
+}
+
+function hexToRgb(hex){
+  const norm = normalizeHex(hex);
+  if(!norm) return null;
+  const r = parseInt(norm.slice(1,3),16);
+  const g = parseInt(norm.slice(3,5),16);
+  const b = parseInt(norm.slice(5,7),16);
+  return {r,g,b, hex:norm};
+}
+
+function rgbToHsl(r,g,b){
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h, s, l=(max+min)/2;
+  if(max===min){ h=0; s=0; }
+  else{
+    const d=max-min;
+    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max){
+      case r: h=(g-b)/d + (g<b?6:0); break;
+      case g: h=(b-r)/d + 2; break;
+      case b: h=(r-g)/d + 4; break;
+    }
+    h/=6;
+  }
+  return { h: Math.round(h*360), s: Math.round(s*100), l: Math.round(l*100) };
+}
+
+function contrastOn(rgb){
+  const srgb=[rgb.r,rgb.g,rgb.b].map(v=>{
+    v/=255; return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055,2.4);
+  });
+  const L= 0.2126*srgb[0]+0.7152*srgb[1]+0.0722*srgb[2];
+  const contrastWhite=(1.05)/(L+0.05);
+  const contrastBlack=(L+0.05)/(0.05);
+  return contrastWhite>contrastBlack?'#ffffff':'#0b0e14';
+}
+
+function sdbm(str){
+  let hash=0; for(let i=0;i<str.length;i++){ hash = (str.charCodeAt(i)) + (hash<<6) + (hash<<16) - hash; hash|=0; }
+  return Math.abs(hash);
+}
+
+// ===== naming engine =====
+function hueFamily(h){
+  const bands=[
+    {name:'crimson', r:[-15, 15]},
+    {name:'orange', r:[16, 40]},
+    {name:'amber',  r:[41, 54]},
+    {name:'gold',   r:[55, 66]},
+    {name:'chartreuse', r:[67, 90]},
+    {name:'green',  r:[91, 150]},
+    {name:'mint',   r:[151, 165]},
+    {name:'teal',   r:[166, 185]},
+    {name:'cyan',   r:[186, 195]},
+    {name:'sky',    r:[196, 205]},
+    {name:'blue',   r:[206, 230]},
+    {name:'indigo', r:[231, 248]},
+    {name:'violet', r:[249, 270]},
+    {name:'magenta',r:[271, 300]},
+    {name:'rose',   r:[301, 330]},
+    {name:'scarlet',r:[331, 360]}
+  ];
+  for(const b of bands){
+    const [a,z]=b.r;
+    if(a<0){ if((h>=0 && h<=z) || (h>=360+(a))) return b.name; }
+    if(h>=a && h<=z) return b.name;
+  }
+  return 'chromatic';
+}
+
+function satLabel(s){
+  if(s<=6) return 'achromatic';
+  if(s<=20) return 'muted';
+  if(s<=40) return 'dusty';
+  if(s<=60) return 'soft';
+  if(s<=80) return 'vivid';
+  return 'electric';
+}
+
+function lightLabel(l){
+  if(l<=6) return 'near-black';
+  if(l<=18) return 'deep';
+  if(l<=35) return 'dark';
+  if(l<=55) return 'mid';
+  if(l<=72) return 'light';
+  if(l<=88) return 'pale';
+  return 'near-white';
+}
+
+const nounsByFamily = {
+  crimson:['ember','poppy','currant','garnet','chili','ribbon'],
+  orange:['apricot','tangelo','marigold','cider','maple','saffron'],
+  amber:['honey','wheat','dawn','straw','topaz','candle'],
+  gold:['coin','grain','halo','alloy','sunbeam','wattle'],
+  chartreuse:['fern','sprout','vine','zest','moss','twig'],
+  green:['meadow','pine','jade','clover','grove','basil'],
+  mint:['glacier','frost','mist','aloe','dew','foam'],
+  teal:['shallows','tide','cove','kelp','reef','bracken'],
+  cyan:['ice','glacier','pool','aether','ray','halo'],
+  sky:['haze','cirrus','spray','surf','breeze','drift'],
+  blue:['depth','ink','lapis','marine','nebula','fjord'],
+  indigo:['iris','wisp','nocturne','plumage','rift','storm'],
+  violet:['heather','amethyst','petal','thistle','bloom','dusk'],
+  magenta:['orchid','stain','velvet','lotus','flare','petal'],
+  rose:['blush','petal','ribbon','bud','rosé','flame'],
+  scarlet:['spark','ember','ripple','flare','berry','garnet'],
+  chromatic:['tone','field','note','spectrum','patch','pane']
+};
+
+const spice = ['whisper','glow','echo','pulse','hollow','glimmer','drift','veil','spark','murmur','blink','glisten','cloud','ember','gleam','twine'];
+
+function buildName(hex){
+  const rgb = hexToRgb(hex);
+  if(!rgb) return null;
+  const {h,s,l} = rgbToHsl(rgb.r,rgb.g,rgb.b);
+  const fam = hueFamily(h);
+  const sat = satLabel(s);
+  const lit = lightLabel(l);
+  const bucket = nounsByFamily[fam] || nounsByFamily.chromatic;
+  const seed = sdbm(rgb.hex);
+  const noun = bucket[seed % bucket.length];
+  const spiceWord = spice[(seed>>>3) % spice.length];
+
+  let adjectives = [];
+  if(sat!=='achromatic') adjectives.push(sat);
+  if(lit!=='mid') adjectives.push(lit);
+
+  // sort adjectives for nicer flow
+  adjectives.sort((a,b)=>{
+    const weight = x => ({'electric':3,'vivid':2,'soft':1,'dusty':0,'muted':0,'achromatic':0,'near-white':2,'pale':1,'light':1,'mid':0,'dark':2,'deep':3,'near-black':3}[x]||0);
+    return weight(b)-weight(a);
+  });
+
+  const core = `${adjectives.join(' ')} ${fam} ${noun}`.replace(/\s+/g,' ').trim();
+  const unique = (seed % 7===0) ? `${core} ${spiceWord}` : core;
+  return {
+    name: unique,
+    explain: `hue→${fam}, saturation→${sat}, lightness→${lit}; seed ${seed.toString(36)}`,
+    hsl: `hsl(${h}°, ${s}%, ${l}%)`,
+    hslParts: {h,s,l},
+    rgb
+  };
+}
+
+// expose for console
+window.generateColorName = hex => buildName(hex)?.name || null;
+
+// ===== UI wiring =====
+const hexInput = document.getElementById('hex');
+const picker = document.getElementById('picker');
+const swatch = document.getElementById('swatch');
+const nameEl = document.getElementById('name');
+const hexTag = document.getElementById('hexTag');
+const explainEl = document.getElementById('explain');
+const hslpill = document.getElementById('hslpill');
+const copyBtn = document.getElementById('copyBtn');
+const copyHexBtn = document.getElementById('copyHexBtn');
+const randomBtn = document.getElementById('randomBtn');
+const contrDot = document.getElementById('contrDot');
+const contrText = document.getElementById('contrText');
+
+let silentUpdate = false; // prevent event recursion
+
+function apply(hex, {force=false}={}){
+  const norm = normalizeHex(hex);
+  if(!norm) return;
+  if(!force && hexTag.textContent === norm) return; // skip if unchanged
+
+  const info = buildName(norm);
+  if(!info) return;
+
+  silentUpdate = true;
+  try {
+    nameEl.textContent = info.name;
+    explainEl.textContent = info.explain;
+    hslpill.textContent = info.hsl;
+    hexTag.textContent = norm;
+    swatch.style.background = norm;
+
+    const ink = contrastOn(info.rgb);
+    swatch.style.color = ink;
+    contrDot.style.color = ink;
+    contrText.textContent = `contrast: ${ ink==='#ffffff' ? 'good' : 'high' }`;
+
+    hexInput.value = norm;
+    picker.value = norm;
+    try{ localStorage.setItem('color:last', norm);}catch{}
+  } finally { silentUpdate = false; }
+}
+
+function randomNice(){
+  const h = Math.floor(Math.random()*360);
+  const s = 50 + Math.floor(Math.random()*45);
+  const l = 35 + Math.floor(Math.random()*30);
+  const c = (1 - Math.abs(2*l/100 - 1)) * (s/100);
+  const x = c * (1 - Math.abs(((h/60)%2) - 1));
+  const m = l/100 - c/2;
+  let r=0,g=0,b=0;
+  if(h<60){ r=c; g=x; b=0; }
+  else if(h<120){ r=x; g=c; b=0; }
+  else if(h<180){ r=0; g=c; b=x; }
+  else if(h<240){ r=0; g=x; b=c; }
+  else if(h<300){ r=x; g=0; b=c; }
+  else { r=c; g=0; b=x; }
+  const R = Math.round((r+m)*255), G = Math.round((g+m)*255), B = Math.round((b+m)*255);
+  return `#${pad2(R)}${pad2(G)}${pad2(B)}`;
+}
+
+function init(){
+  const saved = localStorage.getItem('color:last') || '#ff71ce';
+  silentUpdate = true;
+  hexInput.value = saved;
+  picker.value = saved;
+  silentUpdate = false;
+  apply(saved, {force:true});
+}
+
+// live typing
+hexInput.addEventListener('input', e => {
+  if (silentUpdate) return;
+  const text = e.target.value.trim();
+  const norm = normalizeHex(text);
+  if(norm){ apply(norm, {force:true}); }
+  else {
+    nameEl.textContent = '…';
+    explainEl.textContent = 'type a valid hex (#rgb or #rrggbb)';
+    hslpill.textContent = '';
+    swatch.style.background = '#000';
+    swatch.style.color = '#fff';
+    hexTag.textContent = text;
+  }
+});
+
+picker.addEventListener('input', e => { if (!silentUpdate) apply(e.target.value, {force:true}); });
+
+copyBtn?.addEventListener('click', async ()=>{
+  try{ await navigator.clipboard.writeText(nameEl.textContent); copyBtn.textContent='copied!'; setTimeout(()=>copyBtn.textContent='copy name', 900);}catch{}
+});
+copyHexBtn?.addEventListener('click', async ()=>{
+  try{ await navigator.clipboard.writeText(hexTag.textContent); copyHexBtn.textContent='copied!'; setTimeout(()=>copyHexBtn.textContent='copy hex', 900);}catch{}
+});
+randomBtn?.addEventListener('click', ()=> apply(randomNice(), {force:true}));
+
+window.addEventListener('paste', e=>{
+  if (silentUpdate) return;
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  const norm = normalizeHex(text);
+  if(norm){ e.preventDefault(); apply(norm, {force:true}); }
+});
+
+// ===== built-in tests =====
+function runTests(){
+  const out = [];
+  let pass=0, fail=0;
+  const ok = (name, cond, extra='')=>{ if(cond){ pass++; out.push(`✔ ${name}`); } else { fail++; out.push(`✖ ${name} ${extra}`);} };
+
+  // normalization
+  ok('normalize #abc → #aabbcc', normalizeHex('#abc') === '#aabbcc');
+  ok('normalize junk g#1-2x3 → #112233', normalizeHex('g#1-2x3') === '#112233');
+  ok('reject invalid length', normalizeHex('#12') === null);
+
+  // determinism + structure
+  const nm = buildName('#34d399');
+  ok('buildName returns object', !!nm && typeof nm.name==='string');
+  ok('deterministic name', buildName('#34d399').name === buildName('#34d399').name);
+
+  // stress re-entrancy
+  try { for(let i=0;i<200;i++) apply('#34d399', {force:true}); ok('no RangeError on repeated apply', true); }
+  catch(e){ ok('no RangeError on repeated apply', false, e.message); }
+
+  // input sync
+  apply('#112233', {force:true});
+  ok('hex input synced', document.getElementById('hex').value === '#112233');
+  ok('picker synced', document.getElementById('picker').value.toLowerCase() === '#112233');
+
+  const log = document.getElementById('testlog');
+  log.textContent = `tests passed: ${pass}, failed: ${fail}` + "\\n\\n" + out.join('\\n');
+  if(fail) log.classList.add('error');
+}
+
+init();
+runTests();
+</script>
+
+</body>
+</html>
